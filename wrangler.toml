@@ -1,0 +1,9 @@
+name = "traxpense-bot"
+main = "src/cloudflare_worker.py"
+compatibility_date = "2026-04-22"
+compatibility_flags = ["python_workers"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "traxpense"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"

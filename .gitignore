@@ -1,6 +1,10 @@
 .env
+.dev.vars
 .venv/
 __pycache__/
 .pytest_cache/
+.wrangler/
 *.pyc
+*.egg-info/
 data/
+.DS_Store

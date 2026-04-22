@@ -9,6 +9,7 @@ from aiogram import Bot, Dispatcher
 from expense_bot.config import Settings
 from expense_bot.handlers import build_router
 from expense_bot.repository import SQLiteExpenseRepository
+from expense_bot.service import ExpenseBotService
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +24,10 @@ class BotRuntime:
 
 def build_runtime(settings: Settings) -> BotRuntime:
     repository = SQLiteExpenseRepository(settings)
+    service = ExpenseBotService(repository, settings)
     bot = Bot(settings.telegram_bot_token)
     dispatcher = Dispatcher()
-    dispatcher.include_router(build_router(repository, settings))
+    dispatcher.include_router(build_router(service, settings))
     return BotRuntime(settings=settings, repository=repository, bot=bot, dispatcher=dispatcher)
 
 

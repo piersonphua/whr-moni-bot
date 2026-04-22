@@ -30,10 +30,8 @@ async def _create_repository(tmp_path):
         DATABASE_PATH=str(tmp_path / "expenses.db"),
         DEFAULT_CURRENCY="SGD",
         BOT_TIMEZONE="Asia/Singapore",
-        WEBHOOK_BASE_URL="",
         WEBHOOK_SECRET="secret",
-        HOST="127.0.0.1",
-        PORT=8000,
+        WEBHOOK_PATH="/telegram/webhook",
         LOG_LEVEL="INFO",
     )
     repository = SQLiteExpenseRepository(settings)

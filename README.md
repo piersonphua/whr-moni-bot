@@ -1,6 +1,9 @@
 # Telegram Expense Bot
 
-Python Telegram bot that logs user expenses to a local SQLite database and returns simple spending summaries.
+Python Telegram bot that logs user expenses and returns simple spending summaries. The repo now supports:
+
+- local long polling with SQLite
+- Cloudflare Workers webhooks with D1
 
 ## MVP Features
 
@@ -9,14 +12,14 @@ Python Telegram bot that logs user expenses to a local SQLite database and retur
 - View `/today`, `/week`, `/month`, `/recent`, and `/stats`
 - Correct mistakes with `/undo`, `/delete <id>`, and `/edit <id> <amount> <description>`
 - Infer basic categories and support tags
-- Store data locally in SQLite
-- Run with long polling in local or hosted environments such as Replit
+- Store data in SQLite locally or D1 on Cloudflare
+- Run with long polling locally or Telegram webhooks on Cloudflare Workers
 
 ## Requirements
 
 - Python 3.11+
 - Telegram bot token from BotFather
-- Local filesystem access for the SQLite database file
+- Local filesystem access for the SQLite database file if you use polling mode
 
 ## Setup
 
@@ -49,90 +52,80 @@ python -m expense_bot.main
 - `/delete <id>`
 - `/edit <id> <amount> <description>`
 
-## Deploy on Replit
+## Deploy on Cloudflare Workers + D1
 
-The bot is designed to run with long polling. This keeps deployment simple on low-traffic hosts and avoids webhook setup.
+This repo includes a Cloudflare Worker entrypoint in [src/cloudflare_worker.py](/Users/piersonphua/Desktop/THE-CODEX/src/cloudflare_worker.py:1) and a starter Wrangler config in [wrangler.toml](/Users/piersonphua/Desktop/THE-CODEX/wrangler.toml:1).
 
-Important:
+### What changed for Cloudflare
 
-- Replit free tier workspace runs are not truly always-on
-- If the workspace sleeps, the bot stops until the repl wakes again
-- For a personal low-traffic bot, this may still be acceptable
-- If you need 24/7 uptime, you need a paid Replit Publishing option such as a Reserved VM background worker
+- Command handling was moved into a reusable service layer so the same bot logic can run behind aiogram polling or a webhook worker.
+- A D1-backed repository was added in [src/expense_bot/d1_repository.py](/Users/piersonphua/Desktop/THE-CODEX/src/expense_bot/d1_repository.py:1).
+- The Cloudflare entrypoint accepts Telegram webhook requests and replies by calling Telegram's `sendMessage` API.
 
-Set the following environment variables in Replit:
+### Environment variables / secrets
+
+Configure these in Cloudflare:
 
 - `TELEGRAM_BOT_TOKEN`
-- `DATABASE_PATH`
 - `DEFAULT_CURRENCY`
 - `BOT_TIMEZONE`
-- `POLLING_TIMEOUT`
-- `RESTART_DELAY_SECONDS`
-- `MAX_RESTART_DELAY_SECONDS`
-- `SQLITE_BUSY_TIMEOUT_MS`
+- `WEBHOOK_SECRET`
+- `WEBHOOK_PATH`
 - `LOG_LEVEL`
 
-Recommended Replit command:
+`DATABASE_PATH`, `POLLING_TIMEOUT`, `RESTART_DELAY_SECONDS`, `MAX_RESTART_DELAY_SECONDS`, and `SQLITE_BUSY_TIMEOUT_MS` are only used by the local polling runtime.
+
+For local `wrangler dev`, copy [.dev.vars.example](/Users/piersonphua/Desktop/THE-CODEX/.dev.vars.example:1) to `.dev.vars` and fill in the values there.
+
+### D1 setup
+
+1. Create a D1 database.
+2. Replace `database_id` in `wrangler.toml`.
+3. Apply the schema:
+
+```bash
+wrangler d1 execute traxpense --file=schema.sql
+```
+
+### Deploy
+
+1. Install Wrangler and authenticate with Cloudflare.
+2. Configure secrets:
+
+```bash
+wrangler secret put TELEGRAM_BOT_TOKEN
+wrangler secret put WEBHOOK_SECRET
+```
+
+3. Deploy:
+
+```bash
+wrangler deploy
+```
+
+4. Set the Telegram webhook to your Worker URL plus `WEBHOOK_PATH`.
+
+Example:
+
+```bash
+curl "https://api.telegram.org/bot<token>/setWebhook" \
+  -d "url=https://<your-worker>.workers.dev/telegram/webhook" \
+  -d "secret_token=<your-webhook-secret>"
+```
+
+### Local development
+
+The local bot still runs with polling and SQLite:
 
 ```bash
 python -m expense_bot.main
 ```
 
-Notes:
-
-- Keep `DATABASE_PATH` on Replit's persistent filesystem, for example `data/expenses.db`
-- The process automatically retries after transient crashes or network failures
-- SQLite is configured for lightweight low-concurrency usage
-
-### Step-by-step
-
-1. Create a new Replit App.
-2. Choose Python as the language or import this repository from GitHub.
-3. Open the `Shell` tab and install dependencies:
+To test the Worker locally instead:
 
 ```bash
-pip install -e .
+wrangler dev
 ```
-
-4. Open the `Secrets` tool in Replit.
-5. Add these secrets:
-   - `TELEGRAM_BOT_TOKEN`
-   - `DATABASE_PATH` with value `data/expenses.db`
-   - `DEFAULT_CURRENCY` with value `SGD`
-   - `BOT_TIMEZONE` with value `Asia/Singapore`
-   - `POLLING_TIMEOUT` with value `30`
-   - `RESTART_DELAY_SECONDS` with value `5`
-   - `MAX_RESTART_DELAY_SECONDS` with value `60`
-   - `SQLITE_BUSY_TIMEOUT_MS` with value `5000`
-   - `LOG_LEVEL` with value `INFO`
-6. Make sure the project contains the `.replit` file with:
-
-```ini
-run = "python -m expense_bot.main"
-```
-
-7. Click `Run`.
-8. Wait for logs showing that polling has started and the bot connected successfully.
-9. Send `/start` to your bot in Telegram.
-10. Test one expense like `12.50 lunch`.
-
-### Updating the bot later
-
-1. Push code changes to the Replit App or GitHub-connected repo.
-2. Open the Shell and run:
-
-```bash
-pip install -e .
-```
-
-3. Click `Run` again.
-
-### If it stops working
-
-- Check whether the workspace went to sleep
-- Open Replit and click `Run` again
-- Review logs for Telegram auth errors or SQLite file path errors
-- Confirm `TELEGRAM_BOT_TOKEN` is still valid
 
 ## SQLite Schema
 
