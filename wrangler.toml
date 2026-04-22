@@ -6,4 +6,4 @@ compatibility_flags = ["python_workers"]
 [[d1_databases]]
 binding = "DB"
 database_name = "traxpense"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "3b64c4ea-cd11-4a76-81d9-7b9296c4862b"
