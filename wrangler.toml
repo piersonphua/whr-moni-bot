@@ -1,7 +1,12 @@
-name = 'whr-moni-bot'
-main = "src/cloudflare_worker.py"
-compatibility_date = "2026-04-22"
-compatibility_flags = ["python_workers", "disable_python_external_sdk"]
+name = "whr-moni-bot"
+main = "src/worker.js"
+compatibility_date = "2026-04-23"
+
+[vars]
+DEFAULT_CURRENCY = "SGD"
+BOT_TIMEZONE = "Asia/Singapore"
+WEBHOOK_PATH = "/telegram/webhook"
+LOG_LEVEL = "INFO"
 
 [[d1_databases]]
 binding = "DB"
