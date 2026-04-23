@@ -1,4 +1,4 @@
-name = "traxpense-bot"
+name = 'whr-moni-bot'
 main = "src/cloudflare_worker.py"
 compatibility_date = "2026-04-22"
 compatibility_flags = ["python_workers"]
